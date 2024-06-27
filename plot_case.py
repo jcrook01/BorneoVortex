@@ -8,11 +8,11 @@ from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import pdb
 from read_kevin_bv_tracks import *
 from read_surge import *
-from format_clabel import *
+#from format_clabel import *
 from get_vorticity import *
 from get_vortex_latlon_tilt import *
 from get_case import *
-from plot_case_qt import *
+#from plot_case_qt import *
 from plotting_functions import *
 
 #------------------------------------------------------------------------------
@@ -28,11 +28,12 @@ from plotting_functions import *
 #    lons_ext, lats_ext - lons and lats of u and v
 #    lons, lats - lons and lats of w
 #    pressure, pix<xxx> - pressure levels of u,v,w and the indices at which to find differet pressure levels
-#    track_lon850, track_lat850 - bv 850hPa location
+#    track_lons850, track_lats850 - bv 850hPa locations 
 #    track_lon925, track_lat925, best_match - bv 925hPa location - only vald of best_match==1
+#    track_tix - tix index for this time into track_lons/lats
 #    outdir - where to store the plot
 #-----------------------------------------------------------------------------------
-def plot_uvw(this_date, surge_str, min_lon, max_lon, min_lat, max_lat, u, v, w, u925, v925, w925, below_mask, lons_ext, lats_ext, lons, lats, pressure, pix950, pix900, pix850, pix600, pix400, pix500, track_lon850, track_lat850, track_lon925, track_lat925, best_match, outdir):
+def plot_uvw(this_date, surge_str, min_lon, max_lon, min_lat, max_lat, u, v, w, u925, v925, w925, below_mask, lons_ext, lats_ext, lons, lats, pressure, pix950, pix900, pix850, pix600, pix400, pix500, track_lons850, track_lats850, track_lons925, track_lats925, best_match, track_tix, outdir):
     
     # plot map of 400 hPa winds 
     # map of 600 hPa winds
@@ -59,55 +60,54 @@ def plot_uvw(this_date, surge_str, min_lon, max_lon, min_lat, max_lat, u, v, w, 
     v850=v[pix850,:,:]
     w850=w[pix850,:,:]
 
-    print('plotting uvw maps')
 
     fig = plt.figure(figsize = (9,13))
     title='(a) 400 hPa wind'
-    con, sp=plot_uvw_map(fig, nrows,ncols, 1, title, min_lon, max_lon, min_lat, max_lat, u400, v400, w400, below_mask[pix400,:,:], lons_ext, lats_ext, lons, lats, track_lon850, track_lat850, '')
+    con, sp=plot_uvw_map(fig, nrows,ncols, 1, title, min_lon, max_lon, min_lat, max_lat, u400, v400, w400, below_mask[pix400,:,:], lons_ext, lats_ext, lons, lats, track_lons850, track_lats850, track_tix, '')
     plt.text(max_lon, max_lat*1.3, this_date.strftime('%d/%m/%Y %H:%M ')+surge_str, fontsize=12)
 
     title='(b) 600 hPa wind'
-    con, sp=plot_uvw_map(fig, nrows,ncols, 2, title, min_lon, max_lon, min_lat, max_lat, u600, v600, w600, below_mask[pix600,:,:], lons_ext, lats_ext, lons, lats, track_lon850, track_lat850, '')
+    con, sp=plot_uvw_map(fig, nrows,ncols, 2, title, min_lon, max_lon, min_lat, max_lat, u600, v600, w600, below_mask[pix600,:,:], lons_ext, lats_ext, lons, lats, track_lons850, track_lats850, track_tix, '')
     cb = fig.add_axes(cb_top_pos)
     fig.colorbar(con, cax=cb,orientation = 'vertical')
     cb.set_ylabel(w_label, fontsize=10)
 
     title='(c) 850 hPa wind'
-    con,sp=plot_uvw_map(fig, nrows,ncols, 3, title, min_lon, max_lon, min_lat, max_lat, u850, v850, w850, below_mask[pix850,:,:], lons_ext, lats_ext, lons, lats, track_lon850, track_lat850, col850)
+    con,sp=plot_uvw_map(fig, nrows,ncols, 3, title, min_lon, max_lon, min_lat, max_lat, u850, v850, w850, below_mask[pix850,:,:], lons_ext, lats_ext, lons, lats, track_lons850, track_lats850, track_tix, col850)
 
     title='(d) 925 hPa wind'
     track_col=''
     if best_match>=0:
         track_col=col925 # put dot at current centre
-    con, sp=plot_uvw_map(fig, nrows,ncols, 4, title, min_lon, max_lon, min_lat, max_lat, u925, v925, w925, below_mask[pix950,:,:], lons, lats, lons, lats, track_lon925, track_lat925, track_col)
+    con, sp=plot_uvw_map(fig, nrows,ncols, 4, title, min_lon, max_lon, min_lat, max_lat, u925, v925, w925, below_mask[pix950,:,:], lons, lats, lons, lats, track_lons925, track_lats925, track_tix, track_col)
     cb = fig.add_axes(cb_mid_pos)
     fig.colorbar(sp.lines, cax=cb,orientation = 'vertical')
     cb.set_ylabel(wspeed_label, fontsize=10)
 
     # plot wind cross sections
-    ix_lat_ext=np.where(abs(lats_ext-track_lat850)<=1)
-    ix_lat=np.where(abs(lats-track_lat850)<=1)
+    ix_lat_ext=np.where(abs(lats_ext-track_lats850[track_tix])<=1)
+    ix_lat=np.where(abs(lats-track_lats850[track_tix])<=1)
     this_v_cross_ew=np.mean(v[:,ix_lat_ext[0],:].data, axis=1)
     this_w_cross_ew=np.mean(w[:,ix_lat[0],:].data, axis=1)
-    ix_lon_ext=np.where(abs(lons_ext-track_lon850)<=1)
-    ix_lon=np.where(abs(lons-track_lon850)<=1)
+    ix_lon_ext=np.where(abs(lons_ext-track_lons850[track_tix])<=1)
+    ix_lon=np.where(abs(lons-track_lons850[track_tix])<=1)
     this_u_cross_ns=np.mean(u[:,:,ix_lon_ext[0]].data, axis=2)
     this_w_cross_ns=np.mean(w[:,:,ix_lon[0]].data, axis=2)
-    vortex_lats, vortex_lons, this_vortex_height_ns, this_vortex_height_ew, this_tilt_north, this_tilt_east = find_vortex_height_and_tilt(track_lat850, track_lon850, this_u_cross_ns, this_v_cross_ew, lons_ext, lats_ext, pressure, pix850, pix500)
+    vortex_lats, vortex_lons, this_vortex_height_ns, this_vortex_height_ew, this_tilt_north, this_tilt_east = find_vortex_height_and_tilt(track_lats850[track_tix], track_lons850[track_tix], this_u_cross_ns, this_v_cross_ew, lons_ext, lats_ext, pressure, pix850, pix500)
 
-    track_lat_str='{l:2.2f}'.format(l=abs(track_lat850))
-    if track_lat850>=0:
+    track_lat_str='{l:2.2f}'.format(l=abs(track_lats850[track_tix]))
+    if track_lats850[track_tix]>=0:
         track_lat_str=track_lat_str+'N'
     else:
         track_lat_str=track_lat_str+'S'
     title='(e) meridional wind at '+track_lat_str
     this_below_mask=np.nanmean(below_mask[:,ix_lat[0],:], axis=1)
-    con_v=plot_uvw_ew_cross_section(fig, nrows,ncols, 5, title, min_lon, max_lon, this_v_cross_ew, this_w_cross_ew, this_below_mask, lons_ext, lons, pressure, track_lon850, track_lon925, best_match, vortex_lons, this_vortex_height_ew<1000)
+    con_v=plot_uvw_ew_cross_section(fig, nrows,ncols, 5, title, min_lon, max_lon, this_v_cross_ew, this_w_cross_ew, this_below_mask, lons_ext, lons, pressure, track_lons850[track_tix], track_lons925[track_tix], best_match, vortex_lons, this_vortex_height_ew<1000)
 
-    track_lon_str='{l:2.2f}E'.format(l=track_lon850)
+    track_lon_str='{l:2.2f}E'.format(l=track_lons850[track_tix])
     title='(f) zonal wind at '+track_lon_str
     this_below_mask=np.nanmean(below_mask[:,:,ix_lon[0]], axis=2)
-    con_u=plot_uvw_ns_cross_section(fig, nrows,ncols, 6, title, min_lat, max_lat, this_u_cross_ns, this_w_cross_ns, this_below_mask, lats_ext, lats, pressure, track_lat850, track_lat925, best_match, vortex_lats, this_vortex_height_ns<1000)
+    con_u=plot_uvw_ns_cross_section(fig, nrows,ncols, 6, title, min_lat, max_lat, this_u_cross_ns, this_w_cross_ns, this_below_mask, lats_ext, lats, pressure, track_lats850[track_tix], track_lats925[track_tix], best_match, vortex_lats, this_vortex_height_ns<1000)
 
     cb = fig.add_axes(cb_bottom_pos)
     fig.colorbar(con_v, cax=cb,orientation = 'vertical')
@@ -138,11 +138,12 @@ def plot_uvw(this_date, surge_str, min_lon, max_lon, min_lat, max_lat, u, v, w, 
 #    lons, lats - lons and lats of 
 #    lons_p, lats_p - lons and lats of rain
 #    pressure, pix<xxx> - pressure levels of u,v,w and the indices at which to find differet pressure levels
-#    track_lon850, track_lat850 - bv 850hPa location
-#    track_lon925, track_lat925, best_match - bv 925hPa location - only vald of best_match==1
+#    track_lons850, track_lats850 - bv 850hPa location
+#    track_lons925, track_lats925, best_match - bv 925hPa location - only vald of best_match==1
+#    track_tix - index into track_lons/lats at this time
 #    outdir - where to store the plot
 #-----------------------------------------------------------------------------------
-def plot_rain_vort_pv(this_date, surge_str, min_lon,max_lon,min_lat,max_lat, u850, v850, u925, v925, rain, vort850, vort925, pv, below_mask, lons_ext, lats_ext, lons, lats, pressure, pix850, pix900, pix950, lons_p, lats_p, track_lon850, track_lat850, track_lon925, track_lat925, best_match, outdir):
+def plot_rain_vort_pv(this_date, surge_str, min_lon,max_lon,min_lat,max_lat, u850, v850, u925, v925, rain, vort850, vort925, pv, below_mask, lons_ext, lats_ext, lons, lats, pressure, pix850, pix900, pix950, lons_p, lats_p, track_lons850, track_lats850, track_lons925, track_lats925, best_match, track_tix, outdir):
 
     #-----------------------------------------------------------
     # plot 850 hPa vorticity
@@ -162,15 +163,14 @@ def plot_rain_vort_pv(this_date, surge_str, min_lon,max_lon,min_lat,max_lat, u85
     fig = plt.figure(figsize = (9,13))
     title='(a) 850 hPa \u03B6 and streamlines'
     this_below_mask=below_mask[pix850,:,:]
-    con_v, sp=plot_vort_map(fig, nrows,ncols, 1, title, min_lon,max_lon,min_lat,max_lat, u850, v850, vort850, this_below_mask, lons_ext, lats_ext, track_lon850, track_lat850, col850)
+    con_v, sp=plot_vort_map(fig, nrows,ncols, 1, title, min_lon,max_lon,min_lat,max_lat, u850, v850, vort850, this_below_mask, lons_ext, lats_ext, track_lons850, track_lats850, track_tix, col850)
     plt.text(max_lon, max_lat*1.3, this_date.strftime('%d/%m/%Y %H:%M ')+surge_str, fontsize=12)
-   
     title='(b) 925 hPa \u03B6 and streamlines'
     this_below_mask=below_mask[pix950,:,:]
     track_col=''
     if best_match>=0:
         track_col=col925
-    con_v, sp=plot_vort_map(fig, nrows,ncols, 2, title, min_lon,max_lon,min_lat,max_lat, u925, v925, vort925, this_below_mask, lons, lats, track_lon925, track_lat925, col925)
+    con_v, sp=plot_vort_map(fig, nrows,ncols, 2, title, min_lon,max_lon,min_lat,max_lat, u925, v925, vort925, this_below_mask, lons, lats, track_lons925, track_lats925, track_tix, col925)
     cb = fig.add_axes(cb_top1_pos)
     fig.colorbar(con_v, cax=cb,orientation = 'vertical')
     cb.set_ylabel(vort_label, fontsize=8)
@@ -180,7 +180,7 @@ def plot_rain_vort_pv(this_date, surge_str, min_lon,max_lon,min_lat,max_lat, u85
 
     title='(c) IMERG and 850 hPa streamlines'
     this_below_mask=below_mask[pix850,:,:]
-    con_r, sp=plot_rain_map(fig, nrows,ncols, 3, title, min_lon,max_lon,min_lat,max_lat, u850, v850, rain, this_below_mask, lons_ext, lats_ext, lons_p, lats_p, track_lon850, track_lat850, col850)
+    con_r, sp=plot_rain_map(fig, nrows,ncols, 3, title, min_lon,max_lon,min_lat,max_lat, u850, v850, rain, lons_ext, lats_ext, lons_p, lats_p, track_lons850, track_lats850, track_tix, col850)
     
     cb = fig.add_axes(cb_mid_pos)
     fig.colorbar(con_r, cax=cb,orientation = 'vertical')
@@ -188,26 +188,26 @@ def plot_rain_vort_pv(this_date, surge_str, min_lon,max_lon,min_lat,max_lat, u85
         
     pv850=pv[pix850,:,:]
     title='(d) 850 hPa PV and streamlines'
-    plot_pv_map(fig, nrows,ncols, 4, title, min_lon,max_lon,min_lat,max_lat, u850, v850, pv850, this_below_mask, lons_ext, lats_ext, lons, lats, track_lon850, track_lat850, col850)
+    plot_pv_map(fig, nrows,ncols, 4, title, min_lon,max_lon,min_lat,max_lat, u850, v850, pv850, this_below_mask, lons_ext, lats_ext, lons, lats, track_lons850, track_lats850, track_tix, col850)
 
     # plot potential vorticity cross sections
-    track_lat_str='{l:2.2f}'.format(l=abs(track_lat850))
-    if track_lat850>=0:
+    track_lat_str='{l:2.2f}'.format(l=abs(track_lats850[track_tix]))
+    if track_lats850[track_tix]>=0:
         track_lat_str=track_lat_str+'N'
     else:
         track_lat_str=track_lat_str+'S'
     title='(e) PV at '+track_lat_str
-    ix_lat=np.where(abs(lats-track_lat850)<=1)
+    ix_lat=np.where(abs(lats-track_lats850[track_tix])<=1)
     this_pv=np.mean(pv[:,ix_lat[0],:], axis=1)
     this_below_mask=np.nanmean(below_mask[:,ix_lat[0],:], axis=1)
-    con_pv=plot_pv_ew_cross_section(fig, nrows,ncols, 5, title, min_lon,max_lon, this_pv, this_below_mask, lons, pressure, track_lon850, track_lon925, best_match)
+    con_pv=plot_pv_ew_cross_section(fig, nrows,ncols, 5, title, min_lon,max_lon, this_pv, this_below_mask, lons, pressure, track_lons850[track_tix], track_lons925[track_tix], best_match)
 
-    track_lon_str='{l:2.2f}E'.format(l=track_lon850)
+    track_lon_str='{l:2.2f}E'.format(l=track_lons850[track_tix])
     title='(f) PV at '+track_lon_str
-    ix_lon=np.where(abs(lons-track_lon850)<=1)
+    ix_lon=np.where(abs(lons-track_lons850[track_tix])<=1)
     this_pv=np.mean(pv[:,:,ix_lon[0]], axis=2)
     this_below_mask=np.nanmean(below_mask[:,:,ix_lon[0]], axis=2)
-    con_pv=plot_pv_ns_cross_section(fig, nrows,ncols, 6, title, min_lat,max_lat, this_pv, this_below_mask, lats, pressure, track_lat850, track_lat925, best_match)
+    con_pv=plot_pv_ns_cross_section(fig, nrows,ncols, 6, title, min_lat,max_lat, this_pv, this_below_mask, lats, pressure, track_lats850[track_tix], track_lats925[track_tix], best_match)
     cb = fig.add_axes(cb_bottom_pos)
     fig.colorbar(con_pv, cax=cb,orientation = 'vertical')
     cb.set_ylabel(pv_label, fontsize=8)
@@ -265,7 +265,6 @@ def plot_case(track_850, track_lats925, track_lons925, best_match, min_lat, max_
     rain_dates = rain_t_coord.units.num2date(rain_t_coord.points)
     lons_p = rain.coord('longitude').points
     lats_p = rain.coord('latitude').points
-
     this_date=start_date
 
     surge_years=np.asarray([surge_time.year for surge_time in surge_times])        
@@ -294,7 +293,7 @@ def plot_case(track_850, track_lats925, track_lons925, best_match, min_lat, max_
         pv=era5_pv[ix_wind[0][0]]
         below_mask=era5_below_mask[ix_wind[0][0]]
         
-        this_vortex_height_ns, this_vortex_height_ew, this_tilt_north, this_tilt_east=plot_uvw(this_date, surge_str, min_lon, max_lon, min_lat, max_lat, u, v, w, u925, v925, w925, below_mask, lons_ext, lats_ext, lons, lats, pressure, pix950, pix900, pix850, pix600, pix400, pix500, track_lons850[t], track_lats850[t], track_lons925[t], track_lats925[t], best_match[t], outdir)
+        this_vortex_height_ns, this_vortex_height_ew, this_tilt_north, this_tilt_east=plot_uvw(this_date, surge_str, min_lon, max_lon, min_lat, max_lat, u, v, w, u925, v925, w925, below_mask, lons_ext, lats_ext, lons, lats, pressure, pix950, pix900, pix850, pix600, pix400, pix500, track_lons850, track_lats850, track_lons925, track_lats925, best_match[t], t, outdir)
         if t==0:
             vortex_height_ns=[this_vortex_height_ns]
             vortex_height_ew=[this_vortex_height_ew]
@@ -315,7 +314,7 @@ def plot_case(track_850, track_lats925, track_lons925, best_match, min_lat, max_
         this_rain=rain[ix_rain[0][0],:,:]
         u850=u[pix850,:,:]
         v850=v[pix850,:,:]
-        plot_rain_vort_pv(this_date, surge_str, min_lon,max_lon,min_lat,max_lat, u850, v850, u925, v925, this_rain, vort850[ix_wind[0][0]], vort925[ix_wind[0][0]],pv, below_mask, lons_ext, lats_ext, lons, lats, pressure, pix850, pix900, pix950, lons_p, lats_p, track_lons850[t], track_lats850[t], track_lons925[t], track_lats925[t], best_match[t], outdir)
+        plot_rain_vort_pv(this_date, surge_str, min_lon,max_lon,min_lat,max_lat, u850, v850, u925, v925, this_rain, vort850[ix_wind[0][0]], vort925[ix_wind[0][0]],pv, below_mask, lons_ext, lats_ext, lons, lats, pressure, pix850, pix900, pix950, lons_p, lats_p, track_lons850, track_lats850, track_lons925, track_lats925, best_match[t], t, outdir)
 
     #   plot accumulated rainfall map
     acc_rain_levels=np.arange(10)*20+20
@@ -350,8 +349,7 @@ def plot_case(track_850, track_lats925, track_lons925, best_match, min_lat, max_
     plt.close()
     
     fig = plt.figure()
-    hours, hours850, date_labels=plot_timeseries_height_tilt(fig,nrows,ncols,1,track_850, surge_years, surge_months, surge_days, surge_indices, vortex_height, vortex_tilt_north, vortex_tilt_east,'')
-
+    hours, hours850, date_labels=plot_timeseries_height_tilt(fig,nrows,ncols,1,track_850, surge_years, surge_months, surge_days, surge_indices, np.asarray(vortex_height), np.asarray(vortex_tilt_north), np.asarray(vortex_tilt_east),'')
     outfile=outdir+'height_tilt_timeseries.png'
     plt.savefig(outfile,dpi=100,bbox_inches='tight')
     plt.close()
@@ -366,6 +364,9 @@ def plot_case(track_850, track_lats925, track_lons925, best_match, min_lat, max_
     ylim=ax.get_ylim()
     ndays=int(len(hours850)/4)
     offset_hour=2 # this is hour=12 on 6 hourly data
+    start_day=track_850.track_times[0].replace(hour=0,minute=0)
+    six=np.where((surge_years==start_day.year) & (surge_months==start_day.month) & (surge_days==start_day.day))
+    first_surge_tix=six[0][0]
     for d in range(ndays):
         this_surge=surge_indices[d+first_surge_tix]
         ax.text(hours[d*4]+offset_hour, ylim[0]+0.01*(ylim[1]-ylim[0]), surge_text[this_surge], color='red', horizontalalignment='center')

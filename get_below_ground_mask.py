@@ -9,13 +9,12 @@ from set_latlon_bounds import *
 import datetime as dt
 import numpy as np
 
-def create_era5_orog():
-    fname='/home/users/jcrook001/FORSEA/orog.nc'
+def create_era5_orog(orog_fname):
     era5_dir='/badc/ecmwf-era5/data/oper/an_ml/2018/01/01/'
     filename='ecmwf-era5_oper_an_ml_201801010000.z.nc'
     z_cube=iris.load_cube(era5_dir+filename)
     orog=z_cube[0]/9.80665
-    iris.save(orog, fname)
+    iris.save(orog, orog_fname)
     return orog
 
 def get_orography(intersection, for_um=False):
@@ -24,14 +23,14 @@ def get_orography(intersection, for_um=False):
         print('reading orog from ', orog_file)
         orog=iris.load_cube(orog_file, 'surface_altitude')
     else:
-        fname='/home/users/jcrook001/FORSEA/orog.nc'
+        orog_fname='/gws/nopw/j04/forsea/users/jcrook/BorneoVortex/orog.nc'
         print('reading orography')
         if path.isfile(fname)==True:
             big_intersection= {'latitude': [-20,25], 'longitude': [70,160]} # use this to cover all cases
             orog=iris.load_cube(fname).intersection(**big_intersection)
             orog=orog.intersection(**intersection)
         else:
-            orog=create_era5_orog()
+            orog=create_era5_orog(orog_fname)
     return orog
 
 def get_era5_below_ground_mask(start_date, end_date, intersection, orog):

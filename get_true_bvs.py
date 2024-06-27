@@ -13,30 +13,30 @@ from read_kevin_bv_tracks import *
 #
 # The minimum criteria is also that it shouldn't be a TC but as I wanted to look at
 # which BVs became TCs I did not remove the TCs at this point.
-# Therefore here we also must remove BVs that are TCs at any point
+# Therefore once the BVs have been read we also must remove BVs that are TCs
 # We often also specify it should be init in region
 
 bv_region_lon_range=[100,117]
 bv_region_lat_range=[-2.5,10]
 
-def get_non_tcs(bv_tracks850):
+def get_non_tcs(bv_tracks850, allow_becomes_tc):
 
     nbvs=len(bv_tracks850)
-    is_tc=np.zeros(nbvs, int)
+    is_tc=np.zeros(nbvs, bool)
     for i in range(nbvs):
-        became_tc850=0
-        is_tc850=0
-        if bv_tracks850[i].is_tc_at_some_time():
-            # has been matched to a TC at some point but did this happen after it was in BV region or before?
-            tix_in_reg=bv_tracks850[i].exists_in_region(bv_region_lon_range, bv_region_lat_range)
-            tix_tc=np.where(bv_tracks850[i].is_tc>=0)
-            became_tc850=0
-            is_tc850=1
-            if tix_tc[0][0] > tix_in_reg[0][-1]:
-                print(bv_tracks850[i].track_id, 'becomes TC ', bv_tracks850[i].is_tc[tix_tc[0][0]])
-                became_tc850=1
+        became_tc850=False
+        is_tc850=False
+        if bv_tracks850[i].get_tc()>=0:
+            is_tc850=True
+            if allow_becomes_tc:
+                # has been matched to a TC at some point but did this happen after it was in BV region or before?
+                tix_in_reg=bv_tracks850[i].exists_in_region(bv_region_lon_range, bv_region_lat_range)
+                tix_tc=np.where(bv_tracks850[i].is_tc>=0)
+                if tix_tc[0][0] > tix_in_reg[0][-1]:
+                    print(bv_tracks850[i].track_id, 'becomes TC ', bv_tracks850[i].is_tc[tix_tc[0][0]])
+                    became_tc850=True
 
-        is_tc[i]=(is_tc850 & (became_tc850==0))
+        is_tc[i]=(is_tc850 & became_tc850==False)
 
     ix=np.where(is_tc==False)
     bv_tracks850=bv_tracks850[ix]
@@ -113,7 +113,7 @@ def get_true_bvs_with_rain(year, init_in_reg=False):
     track_file=trackdir+'TrueBVs850_since_2000_with_rain.npy'
     if year < 2000:
         print('invalid year')
-        pdb.set_trace()
+        return []
 
 
     try:
@@ -135,4 +135,4 @@ def get_true_bvs_with_rain(year, init_in_reg=False):
 
     print(len(bv_tracks), 'true bvs with rain')
 
-    return bv_trackse()
+    return bv_tracks

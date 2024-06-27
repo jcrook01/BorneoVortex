@@ -18,7 +18,7 @@ class track_info:
 
     def create(self, track_id, nt):
         self.track_id=track_id
-        self.is_tc=-1
+        self.is_tc=np.zeros(nt,int)-1
         self.nt=nt
         self.track_times=np.asarray([dt.datetime(1900,1,1) for i in range(nt)])
         # all following data has longitude, latitude and value
@@ -152,7 +152,7 @@ class track_info:
     # find whether there exists a TC that occurs at the same time and close to this BV
     # tc is a list of Tropical_Cyclones objects
     def matches_tc(self,tc):
-        is_tc=False
+        is_tc=np.zeros(self.nt, int)
         hours_start=np.asarray([(date-tc.dates[0]).days*24+(date-tc.dates[0]).seconds/3600 for date in self.track_times])
         hours_end=np.asarray([(date-tc.dates[-1]).days*24+(date-tc.dates[-1]).seconds/3600 for date in self.track_times])
         ix=np.where((hours_start>=0) & (hours_end<=0))
@@ -172,11 +172,18 @@ class track_info:
             pos_thresh=3 # BVs at 850 hPa can be a little distance away from surface position of TC in IBTrACS
             #pdb.set_trace()
             if np.mean(lat_diff)<pos_thresh and np.mean(lon_diff)<pos_thresh:
-               is_tc=True
+               is_tc[ix[0][i]]=1
             if np.mean(lat_diff)<2 and np.mean(lon_diff)<2:
                 print('TC does exist at same time', self.track_times[ix[0][0]],self.track_times[ix[0][-1]], tc.name, 'lon diff',np.mean(lon_diff), 'lat diff',np.mean(lat_diff), is_tc)
         return is_tc
 
+    def get_tc(self):
+        tc=-1
+        ix=np.where(self.is_tc>=0)
+        if len(ix[0])>0:
+            tc=self.is_tc[ix[0][0]]
+        return tc
+        
     # get data averaged over a circle of radius dlonlat centred on the track centre at time tix
     def get_mean_centred_data(self,data,lons,lats,dlonlat,tix):
         cenlon=self.vort_data[0,tix]

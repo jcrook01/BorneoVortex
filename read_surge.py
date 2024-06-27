@@ -3,6 +3,7 @@ import iris
 import iris.cube
 import os.path as path
 import numpy as np
+import pdb
 
 # lowercase means weak easterly, uppercase means moderate, uppercase italic means strong
 Eweak='e'
@@ -21,9 +22,46 @@ def get_surge_indices(is_cross_surge,is_merid_surge,is_easterly_surge):
     surge_ix=np.asarray(is_cross_surge+(2*is_easterly_surge)+(8*is_merid_surge))
     return surge_ix
 
-# if start_date and end_date are not within one season there will be a gap in the dates as we only have Jan-March and Oct-Dec
-def read_surge(start_date, end_date):
-    indir='/home/users/jcrook001/FORSEA/surge_data/'
+def read_surge_file(surge_file, coord_name, get_mod_strong, check_months, start_date, end_date):
+    if path.isfile(surge_file)==True:
+        this_surge=iris.load_cube(surge_file)
+        time_coord = this_surge.coord('time')
+        time_unit = time_coord.units
+        this_surge_times=time_unit.num2date(time_coord.points)
+        this_points=this_surge.coord(coord_name).points
+        if get_mod_strong:
+            moderate=this_surge.coord('moderate_'+coord_name).points
+            strong=this_surge.coord('strong_'+coord_name).points
+            ix=np.where(moderate==1)
+            this_points[ix]=2
+            ix=np.where(strong==1)
+            this_points[ix]=3
+        if check_months:
+            months=np.asarray([date.month for date in this_surge_times])
+            ix=np.where(((months<4) | (months>=10)) & ((this_surge_times>=start_date) & (this_surge_times<=end_date)))
+            this_surge_times=this_surge_times[ix]
+            this_points=this_points[ix]
+        return this_points, this_surge_times
+    else:
+        print(surge_file, 'does not exist')
+        return [], []
+    
+# Simon Peatman created yearly files of surge data in terramaris gws up to 2018
+# I created surge data in monthly files thereafter
+# We are only interested in Jan-March and Oct-Dec
+# If start_date and end_date are not within one season there will be a gap in the
+# dates as we only have Jan-March and Oct-Dec
+# read_simon will for 2018 dates force to read Simon's data instead of mine - this is just for checking it matches
+def read_surge(start_date, end_date, read_simon=False):
+    indir='/gws/nopw/j04/forsea/users/jcrook/BorneoVortex/surge_data/'
+    simon_dir='/gws/nopw/j04/terramaris/peatman/'
+    simon_cross_dir=simon_dir+'cross_equatorial_northerly_surge/'
+    simon_merid_dir=simon_dir+'meridional_surge/'
+    simon_east_dir=simon_dir+'easterly_surge/'
+    cross_coord='cross_equatorial_northerly_surge'
+    merid_coord='meridional_surge'
+    simon_merid_coord='cold_surge'
+    east_coord='easterly_surge'
     first_month=dt.datetime(start_date.year,start_date.month,1)
     last_month=dt.datetime(end_date.year,end_date.month,1)
     this_date=first_month
@@ -32,48 +70,35 @@ def read_surge(start_date, end_date):
     is_easterly=[]
     surge_times=[]
     while this_date <= last_month:
-        cross_surge_filename=this_date.strftime(indir+'cross_surge_%Y%m.nc')
-        merid_surge_filename=this_date.strftime(indir+'merid_surge_%Y%m.nc')
-        east_surge_filename=this_date.strftime(indir+'easterly_surge_%Y%m.nc')
-        print('reading surge for ',this_date.year, this_date.month)
-        if path.isfile(cross_surge_filename)==True:
-            cross_surge=iris.load_cube(cross_surge_filename)
-            this_is_cross=cross_surge.coord('cross_equatorial_northerly_surge').points
-            time_coord = cross_surge.coord('time')
-            time_unit = time_coord.units
-            this_surge_times=time_unit.num2date(time_coord.points)
-            if len(is_cross)==0:
-                is_cross=this_is_cross
-                surge_times=this_surge_times
-            else:
-                is_cross=np.append(is_cross, this_is_cross)
-                surge_times=np.append(surge_times, this_surge_times)
-        if path.isfile(merid_surge_filename)==True:
-            merid_surge=iris.load_cube(merid_surge_filename)
-            this_is_merid=merid_surge.coord('meridional_surge').points
-            if len(is_merid)==0:
-                is_merid=this_is_merid
-            else:
-                is_merid=np.append(is_merid, this_is_merid)
-            moderate=merid_surge.coord('moderate_meridional_surge').points
-            ix=np.where(moderate==1)
-            is_merid[ix]=2
-            strong=merid_surge.coord('strong_meridional_surge').points
-            ix=np.where(strong==1)
-            is_merid[ix]=3
-        if path.isfile(east_surge_filename)==True:
-            easterly_surge=iris.load_cube(east_surge_filename)
-            this_is_easterly=easterly_surge.coord('easterly_surge').points
-            if len(is_easterly)==0:
-                is_easterly=this_is_easterly
-            else:
-                is_easterly=np.append(is_easterly,this_is_easterly)
-            moderate=easterly_surge.coord('moderate_easterly_surge').points
-            ix=np.where(moderate==1)
-            is_easterly[ix]=2
-            strong=easterly_surge.coord('strong_easterly_surge').points
-            ix=np.where(strong==1)
-            is_easterly[ix]=3
+        if this_date.year<2018 or (this_date.year==2018 and read_simon):
+            # read Simon's data
+            cross_surge_filename = this_date.strftime(simon_cross_dir+'era5.v925.%Y.dmean.cross_equatorial_northerly_surge.nc')
+            merid_surge_filename = this_date.strftime(simon_merid_dir+'ERA5_%Y_v_925hPa.daily.cold_surge.nc')
+            east_surge_filename = this_date.strftime(simon_east_dir+'era5.u925.%Y.dmean.easterly_surge.nc')
+            print('reading surge for ',this_date.year)
+            check_months=True # we need to remove Apr-Sep
+            this_merid_coord=simon_merid_coord
+        else:
+            cross_surge_filename=this_date.strftime(indir+'cross_surge_%Y%m.nc')
+            merid_surge_filename=this_date.strftime(indir+'merid_surge_%Y%m.nc')
+            east_surge_filename=this_date.strftime(indir+'easterly_surge_%Y%m.nc')
+            print('reading surge for ',this_date.year, this_date.month)
+            check_months=False
+            this_merid_coord=merid_coord
+        cross_surge, this_surge_times=read_surge_file(cross_surge_filename,cross_coord, False,check_months, first_month, end_date)
+        merid_surge, this_surge_times=read_surge_file(merid_surge_filename,this_merid_coord,True,check_months,first_month, end_date)
+        east_surge, this_surge_times=read_surge_file(east_surge_filename,east_coord,True,check_months,first_month, end_date)
+        if len(surge_times)==0:
+            is_cross=cross_surge
+            surge_times=this_surge_times
+            is_merid=merid_surge
+            is_easterly=east_surge
+        else:
+            is_cross=np.append(is_cross, cross_surge)
+            surge_times=np.append(surge_times, this_surge_times)
+            is_merid=np.append(is_merid,merid_surge)
+            is_easterly=np.append(is_easterly,east_surge)
+
         this_date=this_surge_times[-1].replace(hour=0)+dt.timedelta(days=1)
         if this_date.month==4: # skip to October
             this_date=dt.datetime(this_date.year,10,1)

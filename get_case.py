@@ -108,7 +108,7 @@ def get_case_track925_rain_vort(nt, tracks925, best_match, tix925):
         print('925 track rain', rain925[ix])
     return rain925, vort925
 
-def get_common_stuff(bv_tracks850, bv_tracks925, case_id850):
+def get_common_stuff(bv_tracks850, bv_tracks925, case_id850, base_outdir):
     if case_id850==9636:
         case_ids925=[9239,10051]
     elif case_id850==215: # not in top since 2018 BVs as too far north for true BV
@@ -187,7 +187,7 @@ def get_common_stuff(bv_tracks850, bv_tracks925, case_id850):
         
     track_lats925, track_lons925, best_match, tix925, min_lat, max_lat, min_lon, max_lon, ext_min_lat, ext_max_lat, ext_min_lon, ext_max_lon=get_case_track_data(track850, tracks925)
 
-    outdir='/home/users/jcrook001/FORSEA/Cases/'+start_date.strftime('%Y%m%d-')+end_date.strftime('%Y%m%d/')
+    outdir=base_outdir+'Cases/'+start_date.strftime('%Y%m%d-')+end_date.strftime('%Y%m%d/')
     Path(outdir).mkdir(parents=True, exist_ok=True)
 
     print('case id', case_id850, outdir)
@@ -195,8 +195,8 @@ def get_common_stuff(bv_tracks850, bv_tracks925, case_id850):
     return track850, track_lats925, track_lons925, best_match, tix925, min_lat, max_lat, min_lon, max_lon, ext_min_lat, ext_max_lat, ext_min_lon, ext_max_lon, outdir
     
 from get_theta_e import *
-def get_case_for_composite(bv_tracks850, bv_tracks925, case_id850):
-    track850, track_lats925, track_lons925, best_match, tix925, min_lat, max_lat, min_lon, max_lon, ext_min_lat, ext_max_lat, ext_min_lon, ext_max_lon, outdir=get_common_stuff(bv_tracks850, bv_tracks925, case_id850)
+def get_case_for_composite(bv_tracks850, bv_tracks925, case_id850, base_outdir):
+    track850, track_lats925, track_lons925, best_match, tix925, min_lat, max_lat, min_lon, max_lon, ext_min_lat, ext_max_lat, ext_min_lon, ext_max_lon, outdir=get_common_stuff(bv_tracks850, bv_tracks925, case_id850, base_outdir)
     intersection = {'latitude': [min_lat,max_lat], 'longitude': [min_lon,max_lon]}
     ext_intersection = {'latitude': [min_lat-10,max_lat+10], 'longitude': [min_lon-10,max_lon+10]}
     start_date=track850.track_times[0]
@@ -321,10 +321,12 @@ def get_case_for_composite(bv_tracks850, bv_tracks925, case_id850):
     np.save(composite_dlons_fname, delta_lons)
     np.save(composite_dlats_fname, delta_lats)
     return  composites_ew, composites_ns, delta_lons, delta_lats, pressure, outdir
-    
-def get_case(bv_tracks850, bv_tracks925, case_id850):
+
+# base_outdir is the directory in which output will be stored for the different cases
+# each case will be added to a separate directpry under this base_outdir
+def get_case(bv_tracks850, bv_tracks925, case_id850, base_outdir):
         
-    track850, track_lats925, track_lons925, best_match, tix925, min_lat, max_lat, min_lon, max_lon, ext_min_lat, ext_max_lat, ext_min_lon, ext_max_lon, outdir=get_common_stuff(bv_tracks850, bv_tracks925, case_id850)
+    track850, track_lats925, track_lons925, best_match, tix925, min_lat, max_lat, min_lon, max_lon, ext_min_lat, ext_max_lat, ext_min_lon, ext_max_lon, outdir=get_common_stuff(bv_tracks850, bv_tracks925, case_id850, base_outdir)
 
     intersection = {'latitude': [min_lat,max_lat], 'longitude': [min_lon,max_lon]}
     ext_intersection = {'latitude': [ext_min_lat,ext_max_lat], 'longitude': [ext_min_lon,ext_max_lon]}
@@ -348,6 +350,8 @@ def get_case(bv_tracks850, bv_tracks925, case_id850):
     #    print(track.track_id, 'adding rain')
     #    track.add_rain(imerg)
     #rain925, vort925=get_case_track925_rain_vort(track850.nt, tracks925, best_match, tix925)
+    start_date=track850.track_times[0]
+    end_date=track850.track_times[-1]
     orog=get_orography(intersection)    
     below_mask=get_era5_below_ground_mask(start_date, end_date, intersection, orog)
     era5_u=get_era5_on_plevs(start_date, end_date, ext_intersection, 'u', 'eastward_wind', dhours=6)

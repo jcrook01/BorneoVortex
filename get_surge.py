@@ -76,10 +76,9 @@ def get_easterly_surge(u925_cube):
 
     return mean_u
 
-def get_surge(year,  months=[1,2,3,10,11,12]):
+def get_surge(year,  months=[1,2,3,10,11,12], outdir):
     v_intersection={'latitude':[-5,16], 'longitude':[100,120]}
     easterly_intersection={'latitude':[7.5,15.0], 'longitude':[119.99,120.01]}
-    outdir='/home/users/jcrook001/FORSEA/surge_data/'
 
     for m in months:
         this_start_date=dt.datetime(year,m,1)

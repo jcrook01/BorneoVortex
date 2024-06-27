@@ -63,8 +63,8 @@ stream_norm=plt.Normalize(min_wspeed, max_wspeed)
 #     data_cross - data to plot with dimensions[np,nx]
 #     x - the x coordinates of the data
 #     pressure - the y coordinate
-#     shade_levels - the contour levels in the shaded field
-#     shade_cmap - the cmap to use for filling contours for shaded field
+#     levels - the contour levels in the shaded field
+#     cmap - the cmap to use for filling contours for shaded field
 #     x_label - the label for the x axis (longitude or latitude)
 #     track_x850 - this is the x location of the BV in 850 hPa tracking to plot - if INVALID_LAT_LON dont plot
 #     track_x925 - this is the x location of the BV in 925 hPa tracking to plot - if INVALID_LAT_LON dont plot
@@ -74,11 +74,11 @@ stream_norm=plt.Normalize(min_wspeed, max_wspeed)
 #     ax - the axes object
 #     con - the contour plot object so colour bar can be added to the plot
 #-----------------------------------------------------------------------------------------------------
-def plot_cross_section(fig, nrows,ncols, nplot, title, min_x, max_x, data_cross, x, pressure, shade_levels, shade_cmap, x_label, track_x850, track_x925, bv_x, plot_bv):
+def plot_cross_section(fig, nrows,ncols, nplot, title, min_x, max_x, data_cross, x, pressure, levels, cmap, x_label, track_x850, track_x925, bv_x, plot_bv):
 
     ax = fig.add_subplot(nrows,ncols,nplot)
     plt.title(title, loc='left')
-    con=ax.contourf(x_shade, pressure, shade_cross, levels=shade_levels, extend='both',cmap=shade_cmap)
+    con=ax.contourf(x, pressure, data_cross, levels=levels, extend='both',cmap=cmap)
     ax.set_xlim(min_x,max_x)
     ax.set_ylim(1000, 200)
     ax.set_xlabel(x_label)
@@ -183,7 +183,7 @@ def plot_uvw_ns_cross_section(fig, nrows,ncols, nplot, title, min_lat, max_lat, 
     track_x925=INVALID_LAT_LON
     if best_match:
        track_x925=track_lat925
-    ax,con_u=plot_cross_section(fig, nrows,ncols, nplot, title, min_lon, max_lon, this_u_cross_ns, lats_uv, pressure, wind_levels, wind_cmap, 'latitude', track_lat850, track_x925, bv_lats, plot_bv_lats)
+    ax,con_u=plot_cross_section(fig, nrows,ncols, nplot, title, min_lat, max_lat, this_u_cross_ns, lats_uv, pressure, wind_levels, wind_cmap, 'latitude', track_lat850, track_x925, bv_lats, plot_bv_lats)
     con_c=ax.contour(lats_w, pressure, this_w_cross_ns, levels=wprof_levels,linestyles=w_linestyles, extend='both')
     con_m=ax.contourf(lats_w, pressure, below_mask, levels=[-1,0,1],cmap=mask_cmap)
  
@@ -240,7 +240,7 @@ def plot_pv_ns_cross_section(fig, nrows,ncols, nplot, title, min_lat, max_lat, p
     if best_match:
        track_x925=track_lat925
 
-    ax,con_pv=plot_cross_section(fig, nrows,ncols, nplot, title, min_lat, max_lat, pv_cross_ns, lats, pressure, pv_levels, pv_cmap, 'latitude', track_lat850, track_x925, bv_lons, plot_bv_lons)
+    ax,con_pv=plot_cross_section(fig, nrows,ncols, nplot, title, min_lat, max_lat, pv_cross_ns, lats, pressure, pv_levels, pv_cmap, 'latitude', track_lat850, track_x925, [], 0)
     con_m=ax.contourf(lats, pressure, below_mask, levels=[-1,0,1],cmap=mask_cmap)
     return con_pv
 
