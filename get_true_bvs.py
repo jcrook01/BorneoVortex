@@ -36,7 +36,7 @@ def get_non_tcs(bv_tracks850, allow_becomes_tc):
                     print(bv_tracks850[i].track_id, 'becomes TC ', bv_tracks850[i].is_tc[tix_tc[0][0]])
                     became_tc850=True
 
-        is_tc[i]=(is_tc850 & became_tc850==False)
+        is_tc[i]=(is_tc850 & (became_tc850==False))
 
     ix=np.where(is_tc==False)
     bv_tracks850=bv_tracks850[ix]
