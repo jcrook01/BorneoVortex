@@ -38,6 +38,7 @@ def get_surge_indices(is_cross_surge,is_merid_surge,is_easterly_surge):
 #--------------------------------------------------------------------------------------------------------
 def read_surge_file(surge_file, coord_name, get_mod_strong, check_months, start_date, end_date):
     if path.isfile(surge_file)==True:
+        #print('opening', surge_file)
         this_surge=iris.load_cube(surge_file)
         surge_wspeed=this_surge.data
         time_coord = this_surge.coord('time')
@@ -56,7 +57,7 @@ def read_surge_file(surge_file, coord_name, get_mod_strong, check_months, start_
         surge_index=surge_index[ix]
         surge_wspeed=surge_wspeed[ix]
         if check_months:
-            months=np.asarray([date.month for date in this_surge_times])
+            months=np.asarray([date.month for date in surge_times])
             ix=np.where(((months<4) | (months>=10)))
             surge_times=surge_times[ix]
             surge_index=surge_index[ix]
@@ -117,6 +118,7 @@ def read_surge(start_date, end_date, read_simon=False):
             print('reading surge for ',this_date.year, this_date.month)
             check_months=False
             this_merid_coord=merid_coord
+
         this_cross_wspeed, this_cross_surge, this_surge_times=read_surge_file(cross_surge_filename,cross_coord, False,check_months, start_date, end_date)
         this_merid_wspeed, this_merid_surge, this_surge_times=read_surge_file(merid_surge_filename,this_merid_coord,True,check_months,start_date, end_date)
         this_east_wspeed, this_east_surge, this_surge_times=read_surge_file(east_surge_filename,east_coord,True,check_months,start_date, end_date)
